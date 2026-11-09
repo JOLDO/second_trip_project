@@ -108,42 +108,6 @@ flowchart LR
     D -->|예약 완료| E[홈]
 ```
 
-## 🏗 레이어 구조
-
-```mermaid
-flowchart TD
-    subgraph Screen["📱 Screen"]
-        S1[CarRentHomeScreen]
-        S2[CalendarScreen]
-        S3[CarListScreen]
-        S4[CarReservationScreen]
-    end
-    subgraph Controller["🧠 Controller (ChangeNotifier)"]
-        C1[CarRentHomeController]
-        C2[CalendarController]
-        C3[CarRentListController]
-        C4[CarReservationController]
-    end
-    subgraph Service["🔌 Service"]
-        SV1[CarRentHomeService]
-        SV2[CarRentListService]
-        SV3[CarReservationService]
-    end
-    subgraph API["🌐 API"]
-        A1["publicDio<br/>GET /car/regions<br/>GET /car/search/all"]
-        A2["dio (토큰 인터셉터)<br/>POST /api/car/reservation<br/>GET /api/car/reservation/my<br/>DELETE /api/car/reservation/:id"]
-    end
-    S1 --> C1 & C2
-    S2 --> C2
-    S3 --> C3
-    S4 --> C4
-    C1 --> SV1 --> A1
-    C3 --> SV2 --> A1
-    C4 --> SV3 --> A2
-```
-
-> 🌐 API 계층의 요청 / 응답 형식은 [📡 API 명세](#api-spec) 참고
-
 ---
 
 ## 🐛 트러블슈팅 (Frontend)
@@ -153,20 +117,6 @@ flowchart TD
 | 로그인 후 메인으로 돌아와도 비로그인 상태로 보임 | 메인 화면이 `initState`에서만 로그인 상태를 확인 | `RouteAware.didPopNext`에서 다시 확인 |
 | 예약 중 로그인하면 예약 화면으로 돌아오지 않음 | 로그인 성공 시 항상 메인으로 이동 | 로그인 화면에 호출 출처 인자를 넘기고 `pop(true)` 후 예약 재시도 |
 | 차량명이 길면 카드가 오른쪽으로 잘림 | `Row` 안의 `Column`이 남은 너비를 넘어감 | `Expanded`로 감싸 너비 제한 |
-
----
-
-## 📂 담당 주요 파일 (Frontend)
-
-| 계층 | 파일 |
-|------|------|
-| Screen | `car_rent_home_screen.dart`, `calendar_screen.dart`, `car_list_screen.dart`, `car_reservation_screen.dart` |
-| Controller | `car_rent_home_controller.dart`, `calendar_controller.dart`, `car_rent_list_controller.dart`, `car_reservation_controller.dart` |
-| Service | `car_rent_home_service.dart`, `car_rent_list_service.dart`, `car_reservation_service.dart` |
-| Model | `car_search_cursor_*`, `car_reservation_cursor_*`, `car_rental_reservation_dto.dart`, `company_car_dto.dart` |
-| 공통 | `util/api_client.dart` (env 적용), `screen/RoutingScreen.dart`, `screen/SplashScreen.dart`, `screen/MainScreen.dart` (로그인 상태 갱신) |
-
-> 📖 커서 페이징 시퀀스, 예약 생성 분기, 달력 선택 로직 상세는 **[car_feature.md](car_feature.md)** 참고
 
 ---
 
