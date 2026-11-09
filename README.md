@@ -42,13 +42,6 @@
 
 > 🔗 API: [`POST /api/car/reservation`](#api-spec) — 기간 중복 · 금액 계산은 서버에서 검증 ([예약 검증 흐름](#reserve-flow))
 
-### 내 예약 내역
-
-![렌터카 예약 내역](docs/taeheun/images/07_my_rentals.png)
-> 내 예약 화면의 렌터카 탭: 상태 · 시작일 기준 **커서 페이징**, 예약 취소 시 확인 다이얼로그 후 목록에서 바로 제거
->
-> 🔗 API: [`GET /api/car/reservation/my`](#api-spec), [`DELETE /api/car/reservation/{id}`](#api-spec)
-
 ---
 
 ## 🛠 사용 기술 (Frontend)
