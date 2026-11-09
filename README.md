@@ -169,106 +169,6 @@ flowchart LR
 
 <a id="api-spec"></a>
 
-### 📡 API 명세
-
-| 기능 | Method | URL | 인증 | 사용 화면 |
-|------|--------|-----|:---:|------|
-| 지역 목록 | GET | `/car/regions` | ❌ | 렌터카 홈 |
-| 차량 검색 (차종 + 업체 차량) | GET | `/car/search/all` | ❌ | 차량 목록 |
-| 예약 생성 | POST | `/api/car/reservation` | ✅ | 예약 확인 |
-| 내 예약 목록 | GET | `/api/car/reservation/my` | ✅ | 내 예약 내역 |
-| 예약 취소 | DELETE | `/api/car/reservation/{id}` | ✅ | 내 예약 내역 |
-
-<details>
-<summary>요청 / 응답 예시</summary>
-
-**차량 검색**
-```
-GET /car/search/all?region=부산&startDate=2025-05-01&endDate=2025-05-05&cursorPrice=0&cursorName=&size=10
-```
-```json
-{
-  "content": [
-    {
-      "carName": "모닝", "type": "경형", "seats": 4, "fuel": "가솔린",
-      "lowestPrice": 21000,
-      "companyCarDTOs": [
-        { "carId": 12, "companyName": "OO렌트카", "year": 2022, "dailyPrice": 21000 }
-      ]
-    }
-  ],
-  "hasNext": true,
-  "nextCursorPrice": 21000,
-  "nextCursorName": "모닝"
-}
-```
-> 다음 페이지: `nextCursorPrice`, `nextCursorName`을 그대로 `cursorPrice`, `cursorName`에 넣어서 요청
-
-**예약 생성**
-```json
-POST /api/car/reservation
-{ "carId": 12, "startDate": "2025-05-01T10:00:00", "endDate": "2025-05-03T10:00:00" }
-```
-```json
-{
-  "id": 5, "carId": 12, "carName": "모닝", "companyName": "OO렌트카",
-  "userId": "user1", "startDate": "2025-05-01T10:00:00", "endDate": "2025-05-03T10:00:00",
-  "status": "CONFIRMED", "totalPrice": 42000, "createdAt": "..."
-}
-```
-> 실패 시 `400` + 메시지 (예: `해당 시간에 이미 예약된 차량입니다.`) → 앱에서 SnackBar로 표시
-> `401` / `403`이면 앱이 로그인 화면으로 이동 후 재시도
-
-**내 예약 목록**
-```
-GET /api/car/reservation/my?size=10
-GET /api/car/reservation/my?cursorStatusOrder=0&cursorStartDate=2025-05-10T00:00:00&cursorId=5&size=10
-```
-```json
-{ "reservation": [ ... ], "hasNext": true,
-  "nextCursorStatusOrder": 0, "nextCursorStartDate": "2025-05-10T00:00", "nextCursorId": 5 }
-```
-</details>
-
-<a id="search-flow"></a>
-
-### 🔍 차량 검색 흐름
-
-```mermaid
-sequenceDiagram
-    participant App as Flutter 앱
-    participant S as RentCarServiceImpl
-    participant R as CarReservationSearchImpl
-    participant C as CarSearchImpl
-
-    App->>S: GET /car/search/all (region, 기간, 커서)
-    S->>R: searchUnavailableCarIds(start, end)
-    R-->>S: 기간이 겹치는 차량 id 목록
-    S->>C: ① searchCarTypesByRegionWithCursor (size+1)
-    Note over C: GROUP BY 차종<br/>HAVING minPrice > cursorPrice<br/>OR (minPrice = cursorPrice AND name > cursorName)
-    C-->>S: 차종 + 최저가
-    S->>C: ② searchOptionsByCarNamesIn (차종명 IN, fetchJoin 업체)
-    C-->>S: 업체별 차량
-    S-->>App: 차종별로 묶은 결과 + hasNext + 다음 커서
-```
-
-<a id="reserve-flow"></a>
-
-### 📝 예약 생성 검증 흐름
-
-```mermaid
-flowchart TD
-    A[POST /api/car/reservation] --> B{반납 > 대여?}
-    B -->|No| X[400 반납 시간 오류]
-    B -->|Yes| C{차량 존재?}
-    C -->|No| Y[400 차량 없음]
-    C -->|Yes| D{같은 차량 기간 겹침?}
-    D -->|Yes| Z[400 이미 예약된 차량]
-    D -->|No| E{같은 회원 기간 겹침?}
-    E -->|Yes| W[400 이미 예약한 차가 있음]
-    E -->|No| F[CONFIRMED 상태로 저장 + 총 금액 계산]
-```
-
 ### 🗄 DB 관계 (담당 기능 관련)
 
 ```mermaid
@@ -325,16 +225,6 @@ erDiagram
 | 차종마다 업체 차량을 따로 조회 (N+1) | 차종 루프 안에서 개별 조회 | 차종명 `IN` 절 + `fetchJoin`으로 **쿼리 2번에 처리** |
 | 한 회원이 같은 시간에 여러 대 예약 가능 | 차량 기준 중복만 체크 | **회원 기준 기간 중복 체크** 추가 |
 | 지역 필터 값이 제각각 (`부산광역시`, `부산시`...) | 공공데이터 원본 지역명 사용 | 저장할 때 **지역명 정규화** |
-
-### 📂 담당 주요 파일 (Backend)
-
-| 계층 | 파일 |
-|------|------|
-| Controller | `RentCarController`, `CarReservationController` |
-| Service | `RentCarServiceImpl`, `RentalServiceImpl`, `RentCarDataService` (공공데이터 적재) |
-| Repository | `CarSearchImpl`, `CarReservationSearchImpl`, `RentCarCompanySearchImpl` (QueryDSL) |
-| Security | `TokenCheckFilter`, `CustomSecurityConfig` |
-| Test | `CarRepositotyTests`, `CarReservationRepositoryTests`, `RentCarServiceTests`, `RentalServiceTests` |
 
 ---
 
